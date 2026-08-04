@@ -1,15 +1,16 @@
-export const MRT_IDENTITY_VERSION = "0.1.0";
+export { MRT_IDENTITY_VERSION } from "./version.js";
 
-export interface MRTIdentityClientOptions {
-  applicationName?: string;
-}
+export { MRTIdentityClient } from "./client/MRTIdentityClient.js";
 
-export class MRTIdentityClient {
-  public readonly applicationName: string;
-  public readonly version = MRT_IDENTITY_VERSION;
+export type { MRTIdentityClientOptions } from "./client/MRTIdentityClient.js";
 
-  public constructor(options: MRTIdentityClientOptions = {}) {
-    this.applicationName =
-      options.applicationName ?? "MRT Identity Application";
-  }
-}
+export type { IdentityAdapter } from "./adapters/IdentityAdapter.js";
+
+export type { IdentityUserAdapter } from "./adapters/IdentityUserAdapter.js";
+
+export type {
+  CreateIdentityUserInput,
+  IdentityUser,
+  IdentityUserStatus,
+  UpdateIdentityUserInput,
+} from "./types/IdentityUser.js";
