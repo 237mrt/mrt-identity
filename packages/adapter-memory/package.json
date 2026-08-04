@@ -1,0 +1,33 @@
+{
+  "name": "@mrt-identity/adapter-memory",
+  "version": "0.1.0",
+  "description": "MRT Identity için bellek tabanlı geliştirme ve test adaptörü.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mrt-identity/core": "workspace:*"
+  },
+  "keywords": [
+    "authentication",
+    "adapter",
+    "memory",
+    "testing"
+  ],
+  "author": "237mrt",
+  "license": "MIT"
+}
