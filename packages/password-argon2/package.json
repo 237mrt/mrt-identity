@@ -1,0 +1,35 @@
+{
+  "name": "@mrt-identity/password-argon2",
+  "version": "0.1.0",
+  "description": "mrt-identity için Argon2id parola hash sağlayıcısı.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mrt-identity/core": "workspace:*",
+    "argon2": "^0.45.1"
+  },
+  "keywords": [
+    "authentication",
+    "password",
+    "argon2",
+    "argon2id",
+    "security"
+  ],
+  "author": "237mrt",
+  "license": "MIT"
+}

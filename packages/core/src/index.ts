@@ -8,6 +8,8 @@ export type { IdentityAdapter } from "./adapters/IdentityAdapter.js";
 
 export type { IdentityUserAdapter } from "./adapters/IdentityUserAdapter.js";
 
+export type { PasswordHasher } from "./password/PasswordHasher.js";
+
 export type {
   CreateIdentityUserInput,
   IdentityUser,
