@@ -1,0 +1,29 @@
+{
+  "name": "mrt-identity",
+  "version": "0.1.0",
+  "description": "Veritabanı ve web framework'ünden bağımsız, adaptör tabanlı kimlik doğrulama ve güvenlik framework'ü.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "typecheck": "pnpm --recursive typecheck",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "authentication",
+    "authorization",
+    "security",
+    "session",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "237mrt",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
