@@ -48,6 +48,32 @@ describe("MRTIdentityClient", () => {
     expect(client.applicationName).toBe("mrt-identity application");
   });
 
+  it("tip güvenli event listener kaydedebilmelidir", async () => {
+    const client = new MRTIdentityClient();
+
+    const listener = vi.fn();
+
+    client.on("userRegistered", listener);
+
+    const now = new Date();
+
+    await client.emitEvent("userRegistered", {
+      user: {
+        id: "user-1",
+        email: "mert@example.com",
+        username: "237mrt",
+        emailVerifiedAt: null,
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      },
+
+      occurredAt: now,
+    });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
   it("özel uygulama adını kabul etmelidir", () => {
     const client = new MRTIdentityClient({
       applicationName: "Test Uygulaması",
