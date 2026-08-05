@@ -34,4 +34,6 @@ export type {
   UpdateIdentityUserInput,
 } from "./types/IdentityUser.js";
 
+export type { LoginInput, LoginResult } from "./auth/LoginTypes.js";
+
 export type { PublicIdentityUser } from "./types/PublicIdentityUser.js";
