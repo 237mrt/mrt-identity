@@ -40,6 +40,20 @@ export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
 export type { IdentityLoginAttemptAdapter } from "./adapters/IdentityLoginAttemptAdapter.js";
 
+export type {
+  LoginFailedEvent,
+  LoginFailedReason,
+  LoginSucceededEvent,
+  MRTIdentityEventListener,
+  MRTIdentityEventMap,
+  MRTIdentityEventName,
+  SessionCreatedEvent,
+  SessionRefreshedEvent,
+  SessionRevokedEvent,
+  SessionsRevokedEvent,
+  UserRegisteredEvent,
+} from "./events/MRTIdentityEvents.js";
+
 export {
   DEFAULT_LOGIN_PROTECTION_OPTIONS,
   resolveLoginProtectionOptions,
@@ -49,7 +63,6 @@ export type {
   LoginProtectionOptions,
   ResolvedLoginProtectionOptions,
 } from "./security/LoginProtectionOptions.js";
-
 
 export type {
   IdentityLoginAttempt,

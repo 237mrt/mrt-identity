@@ -13,6 +13,14 @@ import type { TokenProvider } from "../tokens/TokenProvider.js";
 import { resolveLoginProtectionOptions } from "../security/LoginProtectionOptions.js";
 
 import type {
+  MRTIdentityEventListener,
+  MRTIdentityEventMap,
+  MRTIdentityEventName,
+} from "../events/MRTIdentityEvents.js";
+
+import { TypedEventEmitter } from "../events/TypedEventEmitter.js";
+
+import type {
   LoginProtectionOptions,
   ResolvedLoginProtectionOptions,
 } from "../security/LoginProtectionOptions.js";
@@ -49,6 +57,7 @@ export class MRTIdentityClient {
 
   private readonly idGenerator: () => string;
   private ready = false;
+  private readonly eventEmitter = new TypedEventEmitter<MRTIdentityEventMap>();
 
   public constructor(options: MRTIdentityClientOptions = {}) {
     this.applicationName =
@@ -79,6 +88,46 @@ export class MRTIdentityClient {
     this.idGenerator = options.idGenerator ?? randomUUID;
 
     this.auth = new AuthManager(this);
+  }
+
+  public on<EventName extends MRTIdentityEventName>(
+    eventName: EventName,
+    listener: MRTIdentityEventListener<EventName>,
+  ): () => void {
+    return this.eventEmitter.on(eventName, listener);
+  }
+
+  public once<EventName extends MRTIdentityEventName>(
+    eventName: EventName,
+    listener: MRTIdentityEventListener<EventName>,
+  ): () => void {
+    return this.eventEmitter.once(eventName, listener);
+  }
+
+  public off<EventName extends MRTIdentityEventName>(
+    eventName: EventName,
+    listener: MRTIdentityEventListener<EventName>,
+  ): boolean {
+    return this.eventEmitter.off(eventName, listener);
+  }
+
+  public removeAllListeners<EventName extends MRTIdentityEventName>(
+    eventName?: EventName,
+  ): void {
+    this.eventEmitter.removeAllListeners(eventName);
+  }
+
+  /**
+   * Core yöneticileri tarafından event
+   * yayınlamak için kullanılır.
+   *
+   * @internal
+   */
+  public async emitEvent<EventName extends MRTIdentityEventName>(
+    eventName: EventName,
+    event: MRTIdentityEventMap[EventName],
+  ): Promise<void> {
+    await this.eventEmitter.emit(eventName, event);
   }
 
   public get isReady(): boolean {
