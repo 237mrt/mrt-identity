@@ -40,6 +40,7 @@ export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
 export type {
   ListSessionsInput,
+  ListSessionsResult,
   LogoutAllInput,
   LogoutAllResult,
   LogoutInput,

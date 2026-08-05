@@ -15,6 +15,8 @@ import type { IdentitySession } from "../types/IdentitySession.js";
 import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
 
 import type {
+  ListSessionsInput,
+  ListSessionsResult,
   LogoutAllInput,
   LogoutAllResult,
   LogoutInput,
@@ -479,6 +481,62 @@ export class AuthManager {
 
     return {
       revokedCount,
+    };
+  }
+
+  public async listSessions(
+    input: ListSessionsInput,
+  ): Promise<ListSessionsResult> {
+    this.client.assertReady();
+
+    const adapter = this.client.adapter;
+
+    if (!adapter) {
+      throw new MRTIdentityError("ADAPTER_NOT_CONFIGURED");
+    }
+
+    const sessionAdapter = adapter.sessions;
+
+    if (!sessionAdapter) {
+      throw new MRTIdentityError("SESSION_SUPPORT_NOT_CONFIGURED");
+    }
+
+    if (typeof input.userId !== "string" || input.userId.trim().length === 0) {
+      throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
+    }
+
+    const userId = input.userId.trim();
+
+    const user = await adapter.users.findById(userId);
+
+    if (!user) {
+      throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
+    }
+
+    const sessions = await sessionAdapter.listByUserId(user.id);
+
+    const now = Date.now();
+
+    const publicSessions = sessions
+      .filter((session) => {
+        if (!input.includeRevoked && session.revokedAt) {
+          return false;
+        }
+
+        if (!input.includeExpired && session.expiresAt.getTime() <= now) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort(
+        (first, second) =>
+          second.lastUsedAt.getTime() - first.lastUsedAt.getTime(),
+      )
+      .map(toPublicIdentitySession);
+
+    return {
+      sessions: publicSessions,
     };
   }
 }

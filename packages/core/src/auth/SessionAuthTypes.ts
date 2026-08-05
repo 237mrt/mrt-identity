@@ -58,3 +58,7 @@ export interface ListSessionsInput {
    */
   includeExpired?: boolean;
 }
+
+export interface ListSessionsResult {
+  sessions: PublicIdentitySession[];
+}
