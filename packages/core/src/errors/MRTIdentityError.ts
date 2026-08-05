@@ -16,6 +16,7 @@ export type MRTIdentityErrorCode =
   | "INVALID_REFRESH_TOKEN"
   | "SESSION_EXPIRED"
   | "SESSION_REVOKED"
+  | "LOGIN_TEMPORARILY_BLOCKED"
   | "SESSION_USER_NOT_FOUND";
 
 export class MRTIdentityError extends Error {

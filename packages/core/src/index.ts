@@ -38,6 +38,21 @@ export type { IdentitySessionAdapter } from "./adapters/IdentitySessionAdapter.j
 
 export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
+export type { IdentityLoginAttemptAdapter } from "./adapters/IdentityLoginAttemptAdapter.js";
+
+export { DEFAULT_LOGIN_PROTECTION_OPTIONS } from "./security/LoginProtectionOptions.js";
+
+export type {
+  LoginProtectionOptions,
+  ResolvedLoginProtectionOptions,
+} from "./security/LoginProtectionOptions.js";
+
+export type {
+  IdentityLoginAttempt,
+  IdentityLoginAttemptScope,
+  RecordIdentityLoginFailureInput,
+} from "./types/IdentityLoginAttempt.js";
+
 export type {
   ListSessionsInput,
   ListSessionsResult,
