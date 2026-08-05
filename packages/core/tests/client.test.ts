@@ -120,4 +120,17 @@ describe("MRTIdentityClient", () => {
         }),
     ).toThrow("sessionDurationMs pozitif bir tam sayı olmalıdır.");
   });
+
+  it("geçersiz maksimum giriş denemesini reddetmelidir", () => {
+    expect(
+      () =>
+        new MRTIdentityClient({
+          loginProtection: {
+            maxAttempts: 0,
+          },
+        }),
+    ).toThrow(
+      "loginProtection.maxAttempts en az 1 olan bir tam sayı olmalıdır.",
+    );
+  });
 });

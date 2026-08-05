@@ -40,12 +40,16 @@ export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
 export type { IdentityLoginAttemptAdapter } from "./adapters/IdentityLoginAttemptAdapter.js";
 
-export { DEFAULT_LOGIN_PROTECTION_OPTIONS } from "./security/LoginProtectionOptions.js";
+export {
+  DEFAULT_LOGIN_PROTECTION_OPTIONS,
+  resolveLoginProtectionOptions,
+} from "./security/LoginProtectionOptions.js";
 
 export type {
   LoginProtectionOptions,
   ResolvedLoginProtectionOptions,
 } from "./security/LoginProtectionOptions.js";
+
 
 export type {
   IdentityLoginAttempt,

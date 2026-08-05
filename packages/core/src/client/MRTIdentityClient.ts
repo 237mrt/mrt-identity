@@ -10,6 +10,13 @@ import type { PasswordHasher } from "../password/PasswordHasher.js";
 
 import type { TokenProvider } from "../tokens/TokenProvider.js";
 
+import { resolveLoginProtectionOptions } from "../security/LoginProtectionOptions.js";
+
+import type {
+  LoginProtectionOptions,
+  ResolvedLoginProtectionOptions,
+} from "../security/LoginProtectionOptions.js";
+
 import {
   BasicPasswordPolicy,
   type PasswordPolicy,
@@ -23,6 +30,7 @@ export interface MRTIdentityClientOptions {
   passwordHasher?: PasswordHasher;
   passwordPolicy?: PasswordPolicy;
   tokenProvider?: TokenProvider;
+  loginProtection?: LoginProtectionOptions;
   sessionDurationMs?: number;
   idGenerator?: () => string;
 }
@@ -31,6 +39,7 @@ export class MRTIdentityClient {
   public readonly applicationName: string;
   public readonly version = MRT_IDENTITY_VERSION;
 
+  public readonly loginProtection: ResolvedLoginProtectionOptions;
   public readonly adapter: IdentityAdapter | null;
   public readonly passwordHasher: PasswordHasher | null;
   public readonly passwordPolicy: PasswordPolicy;
@@ -50,6 +59,10 @@ export class MRTIdentityClient {
     this.passwordHasher = options.passwordHasher ?? null;
 
     this.tokenProvider = options.tokenProvider ?? null;
+
+    this.loginProtection = resolveLoginProtectionOptions(
+      options.loginProtection,
+    );
 
     this.sessionDurationMs =
       options.sessionDurationMs ?? 1000 * 60 * 60 * 24 * 30;
