@@ -19,6 +19,11 @@ import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
 import type { LoginFailedReason } from "../events/MRTIdentityEvents.js";
 
 import type {
+  AuthenticateInput,
+  AuthenticateResult,
+} from "./AuthenticateTypes.js";
+
+import type {
   ListSessionsInput,
   ListSessionsResult,
   LogoutAllInput,
@@ -731,6 +736,159 @@ export class AuthManager {
       refreshToken: generatedToken.token,
 
       ...(issuedAccessToken ? issuedAccessToken : {}),
+    };
+  }
+
+  public async authenticate(
+    input: AuthenticateInput,
+  ): Promise<AuthenticateResult> {
+    this.client.assertReady();
+
+    const adapter = this.client.adapter;
+
+    if (!adapter) {
+      throw new MRTIdentityError("ADAPTER_NOT_CONFIGURED");
+    }
+
+    const sessionAdapter = adapter.sessions;
+
+    if (!sessionAdapter) {
+      throw new MRTIdentityError("SESSION_SUPPORT_NOT_CONFIGURED");
+    }
+
+    const accessTokenProvider = this.client.accessTokenProvider;
+
+    if (!accessTokenProvider) {
+      throw new MRTIdentityError("ACCESS_TOKEN_PROVIDER_NOT_CONFIGURED");
+    }
+
+    if (
+      typeof input.accessToken !== "string" ||
+      input.accessToken.trim().length === 0
+    ) {
+      throw new MRTIdentityError("INVALID_ACCESS_TOKEN");
+    }
+
+    const verification = await accessTokenProvider.verify({
+      token: input.accessToken,
+    });
+
+    if (!verification.valid) {
+      if (verification.reason === "expired") {
+        throw new MRTIdentityError("ACCESS_TOKEN_EXPIRED");
+      }
+
+      throw new MRTIdentityError("INVALID_ACCESS_TOKEN");
+    }
+
+    const { payload } = verification;
+
+    if (
+      typeof payload.userId !== "string" ||
+      payload.userId.trim().length === 0 ||
+      typeof payload.sessionId !== "string" ||
+      payload.sessionId.trim().length === 0
+    ) {
+      throw new MRTIdentityError("INVALID_ACCESS_TOKEN");
+    }
+
+    if (
+      !(payload.expiresAt instanceof Date) ||
+      Number.isNaN(payload.expiresAt.getTime())
+    ) {
+      throw new MRTIdentityError("INVALID_ACCESS_TOKEN");
+    }
+
+    const now = new Date();
+
+    if (payload.expiresAt.getTime() <= now.getTime()) {
+      throw new MRTIdentityError("ACCESS_TOKEN_EXPIRED");
+    }
+
+    const session = await sessionAdapter.findById(payload.sessionId);
+
+    /*
+     * Tokenın sessionı bulunamazsa veya
+     * token userId ile session userId
+     * eşleşmiyorsa detay sızdırmadan
+     * tokenı geçersiz kabul ederiz.
+     */
+    if (!session || session.userId !== payload.userId) {
+      throw new MRTIdentityError("INVALID_ACCESS_TOKEN");
+    }
+
+    if (session.revokedAt) {
+      throw new MRTIdentityError("SESSION_REVOKED");
+    }
+
+    if (session.expiresAt.getTime() <= now.getTime()) {
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "expired",
+          occurredAt: now,
+        });
+      }
+
+      throw new MRTIdentityError("SESSION_EXPIRED");
+    }
+
+    const user = await adapter.users.findById(session.userId);
+
+    if (!user) {
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "user-not-found",
+          occurredAt: now,
+        });
+      }
+
+      throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
+    }
+
+    if (user.status === "locked") {
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "account-state",
+          occurredAt: now,
+        });
+      }
+
+      throw new MRTIdentityError("USER_ACCOUNT_LOCKED");
+    }
+
+    if (user.status === "disabled") {
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "account-state",
+          occurredAt: now,
+        });
+      }
+
+      throw new MRTIdentityError("USER_ACCOUNT_DISABLED");
+    }
+
+    return {
+      user: toPublicIdentityUser(user),
+
+      session: toPublicIdentitySession(session),
+
+      accessTokenExpiresAt: new Date(payload.expiresAt.getTime()),
     };
   }
 

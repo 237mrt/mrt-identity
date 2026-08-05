@@ -54,6 +54,11 @@ export type {
 } from "./token/AccessTokenProvider.js";
 
 export type {
+  AuthenticateInput,
+  AuthenticateResult,
+} from "./auth/AuthenticateTypes.js";
+
+export type {
   LoginFailedEvent,
   LoginFailedReason,
   LoginSucceededEvent,
