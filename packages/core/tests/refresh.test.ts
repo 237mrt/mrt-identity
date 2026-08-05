@@ -7,6 +7,8 @@ import {
   type IdentityUser,
   type PasswordHasher,
   type TokenProvider,
+  type AccessTokenProvider,
+  type CreateAccessTokenInput,
 } from "../src/index.ts";
 
 describe("AuthManager.refresh", () => {
@@ -17,8 +19,27 @@ describe("AuthManager.refresh", () => {
   let passwordHasher: PasswordHasher;
   let tokenProvider: TokenProvider;
 
+  let accessTokenProvider: AccessTokenProvider;
+
+  let accessTokenInputs: CreateAccessTokenInput[];
+
   beforeEach(() => {
     const now = new Date();
+
+    accessTokenInputs = [];
+
+    accessTokenProvider = {
+      create: async (input) => {
+        accessTokenInputs.push(input);
+
+        return "new-access-token";
+      },
+
+      verify: async () => ({
+        valid: false,
+        reason: "invalid",
+      }),
+    };
 
     user = {
       id: "user-1",
@@ -140,6 +161,9 @@ describe("AuthManager.refresh", () => {
       adapter,
       passwordHasher,
       tokenProvider,
+      accessTokenProvider,
+
+      accessTokenDurationMs: 5 * 60 * 1000,
     });
   }
 
@@ -156,6 +180,34 @@ describe("AuthManager.refresh", () => {
         userAgent: "New Browser",
       },
     });
+
+    expect(result.accessToken).toBe("new-access-token");
+
+    expect(result.accessTokenExpiresAt).toEqual(expect.any(Date));
+
+    expect(accessTokenInputs).toHaveLength(1);
+
+    const accessTokenInput = accessTokenInputs[0];
+
+    expect(accessTokenInput).toBeDefined();
+
+    expect(accessTokenInput).toEqual(
+      expect.objectContaining({
+        userId: "user-1",
+        sessionId: "session-1",
+        issuedAt: expect.any(Date),
+        expiresAt: expect.any(Date),
+      }),
+    );
+
+    if (!accessTokenInput) {
+      throw new Error("Access token girdisi oluşturulmalıydı.");
+    }
+
+    expect(
+      accessTokenInput.expiresAt.getTime() -
+        accessTokenInput.issuedAt.getTime(),
+    ).toBe(5 * 60 * 1000);
 
     expect(result.refreshToken).toBe("new-refresh-token");
 

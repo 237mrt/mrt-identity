@@ -17,6 +17,9 @@ export type MRTIdentityErrorCode =
   | "SESSION_EXPIRED"
   | "SESSION_REVOKED"
   | "LOGIN_TEMPORARILY_BLOCKED"
+  | "ACCESS_TOKEN_PROVIDER_NOT_CONFIGURED"
+  | "INVALID_ACCESS_TOKEN"
+  | "ACCESS_TOKEN_EXPIRED"
   | "SESSION_USER_NOT_FOUND";
 
 export class MRTIdentityError extends Error {

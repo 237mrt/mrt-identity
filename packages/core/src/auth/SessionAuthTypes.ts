@@ -24,9 +24,22 @@ export interface RefreshResult {
   session: PublicIdentitySession;
 
   /**
-   * Rotation sonucunda oluşturulan yeni refresh token.
+   * Rotation sonucunda oluşturulan
+   * yeni refresh token.
    */
   refreshToken: string;
+
+  /**
+   * Access-token provider
+   * yapılandırılmışsa oluşturulur.
+   */
+  accessToken?: string;
+
+  /**
+   * Access tokenın geçerliliğinin
+   * sona ereceği zaman.
+   */
+  accessTokenExpiresAt?: Date;
 }
 
 export interface LogoutInput {
