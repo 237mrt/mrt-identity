@@ -38,7 +38,16 @@ export type { IdentitySessionAdapter } from "./adapters/IdentitySessionAdapter.j
 
 export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
-export type { SessionContext } from "./auth/SessionAuthTypes.js";
+export type {
+  ListSessionsInput,
+  LogoutAllInput,
+  LogoutAllResult,
+  LogoutInput,
+  LogoutResult,
+  RefreshInput,
+  RefreshResult,
+  SessionContext,
+} from "./auth/SessionAuthTypes.js";
 
 export type {
   CreateIdentitySessionInput,

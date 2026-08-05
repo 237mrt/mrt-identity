@@ -10,7 +10,13 @@ export type MRTIdentityErrorCode =
   | "INVALID_GENERATED_ID"
   | "INVALID_CREDENTIALS"
   | "USER_ACCOUNT_LOCKED"
-  | "USER_ACCOUNT_DISABLED";
+  | "USER_ACCOUNT_DISABLED"
+  | "SESSION_SUPPORT_NOT_CONFIGURED"
+  | "TOKEN_PROVIDER_NOT_CONFIGURED"
+  | "INVALID_REFRESH_TOKEN"
+  | "SESSION_EXPIRED"
+  | "SESSION_REVOKED"
+  | "SESSION_USER_NOT_FOUND";
 
 export class MRTIdentityError extends Error {
   public readonly code: MRTIdentityErrorCode;
