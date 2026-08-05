@@ -16,6 +16,8 @@ import type { IdentitySession } from "../types/IdentitySession.js";
 
 import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
 
+import type { LoginFailedReason } from "../events/MRTIdentityEvents.js";
+
 import type {
   ListSessionsInput,
   ListSessionsResult,
@@ -156,6 +158,20 @@ export class AuthManager {
     this.client = client;
   }
 
+  private async emitLoginFailed(
+    input: LoginInput,
+    reason: LoginFailedReason,
+  ): Promise<void> {
+    await this.client.emitEvent("loginFailed", {
+      identifier: input.identifier.trim(),
+
+      context: input.context ?? null,
+
+      reason,
+      occurredAt: new Date(),
+    });
+  }
+
   private async assertLoginNotBlocked(
     loginAttempts: IdentityLoginAttemptAdapter,
     keys: LoginAttemptKey[],
@@ -273,8 +289,15 @@ export class AuthManager {
         status: "active",
       });
 
+      const publicUser = toPublicIdentityUser(user);
+
+      await this.client.emitEvent("userRegistered", {
+        user: publicUser,
+        occurredAt: new Date(),
+      });
+
       return {
-        user: toPublicIdentityUser(user),
+        user: publicUser,
       };
     } catch (error) {
       return convertAdapterError(error);
@@ -313,11 +336,22 @@ export class AuthManager {
     const loginAttemptTime = new Date();
 
     if (loginProtectionEnabled && loginAttempts) {
-      await this.assertLoginNotBlocked(
-        loginAttempts,
-        loginAttemptKeys,
-        loginAttemptTime,
-      );
+      try {
+        await this.assertLoginNotBlocked(
+          loginAttempts,
+          loginAttemptKeys,
+          loginAttemptTime,
+        );
+      } catch (error) {
+        if (
+          error instanceof MRTIdentityError &&
+          error.code === "LOGIN_TEMPORARILY_BLOCKED"
+        ) {
+          await this.emitLoginFailed(input, "LOGIN_TEMPORARILY_BLOCKED");
+        }
+
+        throw error;
+      }
     }
 
     let user: IdentityUser | null;
@@ -330,12 +364,25 @@ export class AuthManager {
 
     if (!user) {
       if (loginProtectionEnabled && loginAttempts) {
-        await this.recordLoginFailure(
-          loginAttempts,
-          loginAttemptKeys,
-          new Date(),
-        );
+        try {
+          await this.recordLoginFailure(
+            loginAttempts,
+            loginAttemptKeys,
+            new Date(),
+          );
+        } catch (error) {
+          if (
+            error instanceof MRTIdentityError &&
+            error.code === "LOGIN_TEMPORARILY_BLOCKED"
+          ) {
+            await this.emitLoginFailed(input, "LOGIN_TEMPORARILY_BLOCKED");
+          }
+
+          throw error;
+        }
       }
+
+      await this.emitLoginFailed(input, "INVALID_CREDENTIALS");
 
       throw new MRTIdentityError("INVALID_CREDENTIALS");
     }
@@ -347,21 +394,38 @@ export class AuthManager {
 
     if (!passwordVerified) {
       if (loginProtectionEnabled && loginAttempts) {
-        await this.recordLoginFailure(
-          loginAttempts,
-          loginAttemptKeys,
-          new Date(),
-        );
+        try {
+          await this.recordLoginFailure(
+            loginAttempts,
+            loginAttemptKeys,
+            new Date(),
+          );
+        } catch (error) {
+          if (
+            error instanceof MRTIdentityError &&
+            error.code === "LOGIN_TEMPORARILY_BLOCKED"
+          ) {
+            await this.emitLoginFailed(input, "LOGIN_TEMPORARILY_BLOCKED");
+          }
+
+          throw error;
+        }
       }
+
+      await this.emitLoginFailed(input, "INVALID_CREDENTIALS");
 
       throw new MRTIdentityError("INVALID_CREDENTIALS");
     }
 
     if (user.status === "locked") {
+      await this.emitLoginFailed(input, "USER_ACCOUNT_LOCKED");
+
       throw new MRTIdentityError("USER_ACCOUNT_LOCKED");
     }
 
     if (user.status === "disabled") {
+      await this.emitLoginFailed(input, "USER_ACCOUNT_DISABLED");
+
       throw new MRTIdentityError("USER_ACCOUNT_DISABLED");
     }
 
@@ -396,6 +460,15 @@ export class AuthManager {
     const tokenProvider = this.client.tokenProvider;
 
     if (!sessionAdapter || !tokenProvider) {
+      await this.client.emitEvent("loginSucceeded", {
+        user: publicUser,
+        session: null,
+
+        context: input.context ?? null,
+
+        occurredAt: new Date(),
+      });
+
       return {
         user: publicUser,
         passwordRehashed,
@@ -423,10 +496,28 @@ export class AuthManager {
       updatedAt: now,
     });
 
+    const publicSession = toPublicIdentitySession(session);
+
+    const eventContext = input.context ?? null;
+
+    await this.client.emitEvent("sessionCreated", {
+      user: publicUser,
+      session: publicSession,
+      context: eventContext,
+      occurredAt: new Date(),
+    });
+
+    await this.client.emitEvent("loginSucceeded", {
+      user: publicUser,
+      session: publicSession,
+      context: eventContext,
+      occurredAt: new Date(),
+    });
+
     return {
       user: publicUser,
       passwordRehashed,
-      session: toPublicIdentitySession(session),
+      session: publicSession,
       refreshToken: generatedToken.token,
     };
   }
