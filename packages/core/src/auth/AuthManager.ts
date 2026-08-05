@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { MRTIdentityClient } from "../client/MRTIdentityClient.js";
 
 import { MRTIdentityError } from "../errors/MRTIdentityError.js";
@@ -24,6 +26,10 @@ import type {
   RefreshInput,
   RefreshResult,
 } from "./SessionAuthTypes.js";
+
+import type { IdentityLoginAttemptAdapter } from "../adapters/IdentityLoginAttemptAdapter.js";
+
+import type { IdentityLoginAttemptScope } from "../types/IdentityLoginAttempt.js";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -94,11 +100,117 @@ function convertAdapterError(error: unknown): never {
   throw error;
 }
 
+interface LoginAttemptKey {
+  key: string;
+  scope: IdentityLoginAttemptScope;
+}
+
+function normalizeLoginIdentifier(identifier: string): string {
+  const normalizedIdentifier = identifier.trim();
+
+  if (normalizedIdentifier.includes("@")) {
+    return normalizeEmail(normalizedIdentifier);
+  }
+
+  return normalizedIdentifier.toLowerCase();
+}
+
+function hashLoginAttemptValue(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function createLoginAttemptKeys(
+  identifier: string,
+  ipAddress: string | null | undefined,
+  trackByIp: boolean,
+): LoginAttemptKey[] {
+  const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+
+  const keys: LoginAttemptKey[] = [
+    {
+      scope: "identifier",
+
+      key: hashLoginAttemptValue(`identifier:${normalizedIdentifier}`),
+    },
+  ];
+
+  const normalizedIpAddress = ipAddress?.trim();
+
+  if (trackByIp && normalizedIpAddress) {
+    keys.push({
+      scope: "identifier-ip",
+
+      key: hashLoginAttemptValue(
+        `identifier-ip:${normalizedIdentifier}:${normalizedIpAddress}`,
+      ),
+    });
+  }
+
+  return keys;
+}
+
 export class AuthManager {
   private readonly client: MRTIdentityClient;
 
   public constructor(client: MRTIdentityClient) {
     this.client = client;
+  }
+
+  private async assertLoginNotBlocked(
+    loginAttempts: IdentityLoginAttemptAdapter,
+    keys: LoginAttemptKey[],
+    now: Date,
+  ): Promise<void> {
+    for (const item of keys) {
+      const attempt = await loginAttempts.findByKey(item.key);
+
+      if (
+        attempt?.lockedUntil &&
+        attempt.lockedUntil.getTime() > now.getTime()
+      ) {
+        throw new MRTIdentityError("LOGIN_TEMPORARILY_BLOCKED");
+      }
+    }
+  }
+
+  private async recordLoginFailure(
+    loginAttempts: IdentityLoginAttemptAdapter,
+    keys: LoginAttemptKey[],
+    occurredAt: Date,
+  ): Promise<void> {
+    let temporarilyBlocked = false;
+
+    for (const item of keys) {
+      const attempt = await loginAttempts.recordFailure({
+        key: item.key,
+        scope: item.scope,
+        occurredAt,
+
+        maxAttempts: this.client.loginProtection.maxAttempts,
+
+        attemptWindowMs: this.client.loginProtection.attemptWindowMs,
+
+        lockDurationMs: this.client.loginProtection.lockDurationMs,
+      });
+
+      if (
+        attempt.lockedUntil &&
+        attempt.lockedUntil.getTime() > occurredAt.getTime()
+      ) {
+        temporarilyBlocked = true;
+      }
+    }
+
+    if (temporarilyBlocked) {
+      throw new MRTIdentityError("LOGIN_TEMPORARILY_BLOCKED");
+    }
+  }
+
+  private async clearLoginFailures(
+    loginAttempts: IdentityLoginAttemptAdapter,
+    keys: LoginAttemptKey[],
+  ): Promise<void> {
+    await Promise.all(keys.map((item) => loginAttempts.clear(item.key)));
   }
 
   public async register(input: RegisterInput): Promise<RegisterResult> {
@@ -185,6 +297,29 @@ export class AuthManager {
       throw new MRTIdentityError("INVALID_CREDENTIALS");
     }
 
+    const loginAttempts = adapter.loginAttempts;
+
+    const loginProtectionEnabled =
+      this.client.loginProtection.enabled && loginAttempts !== undefined;
+
+    const loginAttemptKeys = loginProtectionEnabled
+      ? createLoginAttemptKeys(
+          input.identifier,
+          input.context?.ipAddress,
+          this.client.loginProtection.trackByIp,
+        )
+      : [];
+
+    const loginAttemptTime = new Date();
+
+    if (loginProtectionEnabled && loginAttempts) {
+      await this.assertLoginNotBlocked(
+        loginAttempts,
+        loginAttemptKeys,
+        loginAttemptTime,
+      );
+    }
+
     let user: IdentityUser | null;
 
     if (identifier.includes("@")) {
@@ -194,6 +329,14 @@ export class AuthManager {
     }
 
     if (!user) {
+      if (loginProtectionEnabled && loginAttempts) {
+        await this.recordLoginFailure(
+          loginAttempts,
+          loginAttemptKeys,
+          new Date(),
+        );
+      }
+
       throw new MRTIdentityError("INVALID_CREDENTIALS");
     }
 
@@ -203,6 +346,14 @@ export class AuthManager {
     );
 
     if (!passwordVerified) {
+      if (loginProtectionEnabled && loginAttempts) {
+        await this.recordLoginFailure(
+          loginAttempts,
+          loginAttemptKeys,
+          new Date(),
+        );
+      }
+
       throw new MRTIdentityError("INVALID_CREDENTIALS");
     }
 
@@ -212,6 +363,10 @@ export class AuthManager {
 
     if (user.status === "disabled") {
       throw new MRTIdentityError("USER_ACCOUNT_DISABLED");
+    }
+
+    if (loginProtectionEnabled && loginAttempts) {
+      await this.clearLoginFailures(loginAttempts, loginAttemptKeys);
     }
 
     let resolvedUser = user;
