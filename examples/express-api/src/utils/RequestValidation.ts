@@ -1,7 +1,15 @@
 import { ApiError } from "../errors/ApiError.js";
 
-export function readRequiredString(value: unknown, fieldName: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
+interface RequiredStringOptions {
+  trim?: boolean;
+}
+
+export function readRequiredString(
+  value: unknown,
+  fieldName: string,
+  options: RequiredStringOptions = {},
+): string {
+  if (typeof value !== "string") {
     throw new ApiError(
       400,
       "INVALID_REQUEST",
@@ -9,7 +17,17 @@ export function readRequiredString(value: unknown, fieldName: string): string {
     );
   }
 
-  return value.trim();
+  const resolvedValue = options.trim === false ? value : value.trim();
+
+  if (resolvedValue.length === 0) {
+    throw new ApiError(
+      400,
+      "INVALID_REQUEST",
+      `${fieldName} alanı zorunludur.`,
+    );
+  }
+
+  return resolvedValue;
 }
 
 export function readOptionalString(
@@ -26,9 +44,36 @@ export function readOptionalString(
 
   const normalizedValue = value.trim();
 
-  if (!normalizedValue) {
+  return normalizedValue || undefined;
+}
+
+export function readOptionalBoolean(
+  value: unknown,
+  fieldName: string,
+): boolean | undefined {
+  if (value === undefined || value === null || value === "") {
     return undefined;
   }
 
-  return normalizedValue;
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (normalizedValue === "true" || normalizedValue === "1") {
+      return true;
+    }
+
+    if (normalizedValue === "false" || normalizedValue === "0") {
+      return false;
+    }
+  }
+
+  throw new ApiError(
+    400,
+    "INVALID_REQUEST",
+    `${fieldName} true veya false olmalıdır.`,
+  );
 }

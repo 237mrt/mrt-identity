@@ -11,6 +11,48 @@ interface ErrorResponse {
 }
 
 const identityErrorMessages: Record<string, ErrorResponse> = {
+  INVALID_REFRESH_TOKEN: {
+    statusCode: 401,
+    code: "INVALID_REFRESH_TOKEN",
+    message: "Refresh token geçerli değil.",
+  },
+
+  SESSION_EXPIRED: {
+    statusCode: 401,
+    code: "SESSION_EXPIRED",
+    message: "Oturumun süresi dolmuş.",
+  },
+
+  SESSION_REVOKED: {
+    statusCode: 401,
+    code: "SESSION_REVOKED",
+    message: "Oturum daha önce kapatılmış.",
+  },
+
+  SESSION_USER_NOT_FOUND: {
+    statusCode: 404,
+    code: "SESSION_USER_NOT_FOUND",
+    message: "Oturuma ait kullanıcı bulunamadı.",
+  },
+
+  SESSION_SUPPORT_NOT_CONFIGURED: {
+    statusCode: 503,
+    code: "SESSION_SUPPORT_NOT_CONFIGURED",
+    message: "Oturum servisi yapılandırılmamış.",
+  },
+
+  TOKEN_PROVIDER_NOT_CONFIGURED: {
+    statusCode: 503,
+    code: "TOKEN_PROVIDER_NOT_CONFIGURED",
+    message: "Token servisi yapılandırılmamış.",
+  },
+
+  ADAPTER_NOT_CONFIGURED: {
+    statusCode: 503,
+    code: "ADAPTER_NOT_CONFIGURED",
+    message: "Veri adapterı yapılandırılmamış.",
+  },
+
   INVALID_EMAIL: {
     statusCode: 400,
     code: "INVALID_EMAIL",
