@@ -1,9 +1,8 @@
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import express, { type Express, type Request, type Response } from "express";
+
+import { errorHandler } from "./middleware/errorHandler.js";
+
+import { authRouter } from "./routes/authRoutes.js";
 
 export function createApp(): Express {
   const app = express();
@@ -23,9 +22,12 @@ export function createApp(): Express {
     });
   });
 
+  app.use("/auth", authRouter);
+
   app.use((request: Request, response: Response) => {
     response.status(404).json({
       success: false,
+
       error: {
         code: "ROUTE_NOT_FOUND",
         message: `${request.method} ${request.path} bulunamadı.`,
@@ -33,24 +35,11 @@ export function createApp(): Express {
     });
   });
 
-  app.use(
-    (
-      error: unknown,
-      _request: Request,
-      response: Response,
-      _next: NextFunction,
-    ) => {
-      console.error(error);
-
-      response.status(500).json({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Beklenmeyen bir sunucu hatası oluştu.",
-        },
-      });
-    },
-  );
+  /*
+   * Error middleware bütün route ve
+   * 404 tanımlarından sonra gelmelidir.
+   */
+  app.use(errorHandler);
 
   return app;
 }
