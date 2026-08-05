@@ -1,7 +1,7 @@
 {
   "name": "@mrt-identity/adapter-memory",
-  "version": "0.1.0",
-  "description": "MRT Identity için bellek tabanlı geliştirme ve test adaptörü.",
+  "version": "0.1.0-alpha.1",
+  "description": "In-memory adapter for mrt-identity development and testing.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,27 +12,51 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@mrt-identity/core": "workspace:*"
   },
   "devDependencies": {
     "@mrt-identity/adapter-testkit": "workspace:*",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "keywords": [
+    "mrt-identity",
     "authentication",
     "adapter",
     "memory",
+    "in-memory",
     "testing"
   ],
-  "author": "237mrt",
-  "license": "MIT"
+  "author": {
+    "name": "237mrt",
+    "url": "https://github.com/237mrt"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/237mrt/mrt-identity.git",
+    "directory": "packages/adapter-memory"
+  },
+  "homepage": "https://github.com/237mrt/mrt-identity/tree/main/packages/adapter-memory#readme",
+  "bugs": {
+    "url": "https://github.com/237mrt/mrt-identity/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

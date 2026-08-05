@@ -1,7 +1,7 @@
 {
   "name": "@mrt-identity/adapter-testkit",
-  "version": "0.1.0",
-  "description": "mrt-identity adapterları için ortak sözleşme testleri.",
+  "version": "0.1.0-alpha.1",
+  "description": "Reusable adapter contract tests for mrt-identity adapters.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,12 +12,17 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@mrt-identity/core": "workspace:*"
@@ -29,12 +34,30 @@
     "vitest": "^4.1.10"
   },
   "keywords": [
+    "mrt-identity",
     "authentication",
     "adapter",
     "testing",
     "contract-tests",
     "vitest"
   ],
-  "author": "237mrt",
-  "license": "MIT"
+  "author": {
+    "name": "237mrt",
+    "url": "https://github.com/237mrt"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/237mrt/mrt-identity.git",
+    "directory": "packages/adapter-testkit"
+  },
+  "homepage": "https://github.com/237mrt/mrt-identity/tree/main/packages/adapter-testkit#readme",
+  "bugs": {
+    "url": "https://github.com/237mrt/mrt-identity/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

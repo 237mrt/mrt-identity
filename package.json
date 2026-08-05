@@ -1,16 +1,23 @@
 {
   "name": "mrt-identity",
-  "version": "0.1.0",
-  "description": "Veritabanı ve web framework'ünden bağımsız, adaptör tabanlı kimlik doğrulama ve güvenlik framework'ü.",
+  "version": "0.1.0-alpha.1",
+  "description": "Database- and framework-agnostic, adapter-based authentication and login security framework for Node.js.",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
   "scripts": {
     "build": "pnpm --recursive build",
     "test": "pnpm --recursive test",
     "typecheck": "pnpm --recursive typecheck",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write ."
   },
   "keywords": [
+    "mrt-identity",
     "authentication",
     "authorization",
     "security",
@@ -18,8 +25,19 @@
     "nodejs",
     "typescript"
   ],
-  "author": "237mrt",
+  "author": {
+    "name": "237mrt",
+    "url": "https://github.com/237mrt"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/237mrt/mrt-identity.git"
+  },
+  "homepage": "https://github.com/237mrt/mrt-identity#readme",
+  "bugs": {
+    "url": "https://github.com/237mrt/mrt-identity/issues"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "prettier": "^3.9.6",

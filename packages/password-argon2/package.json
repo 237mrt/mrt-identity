@@ -1,7 +1,7 @@
 {
   "name": "@mrt-identity/password-argon2",
-  "version": "0.1.0",
-  "description": "mrt-identity için Argon2id parola hash sağlayıcısı.",
+  "version": "0.1.0-alpha.1",
+  "description": "Argon2id password hashing provider for mrt-identity.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,24 +12,48 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@mrt-identity/core": "workspace:*",
     "argon2": "^0.45.1"
   },
   "keywords": [
+    "mrt-identity",
     "authentication",
     "password",
+    "password-hashing",
     "argon2",
     "argon2id",
     "security"
   ],
-  "author": "237mrt",
-  "license": "MIT"
+  "author": {
+    "name": "237mrt",
+    "url": "https://github.com/237mrt"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/237mrt/mrt-identity.git",
+    "directory": "packages/password-argon2"
+  },
+  "homepage": "https://github.com/237mrt/mrt-identity/tree/main/packages/password-argon2#readme",
+  "bugs": {
+    "url": "https://github.com/237mrt/mrt-identity/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
+  }
 }
