@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   MRTIdentityClient,
+  type AccessTokenProvider,
+  type CreateAccessTokenInput,
   type CreateIdentitySessionInput,
   type IdentityAdapter,
   type IdentitySession,
@@ -26,7 +28,7 @@ function createUser(): IdentityUser {
 }
 
 describe("login session oluşturma", () => {
-  it("session desteği varsa refresh token üretmelidir", async () => {
+  it("session desteği varsa refresh ve access token üretmelidir", async () => {
     const user = createUser();
 
     let storedSession: IdentitySession | null = null;
@@ -111,6 +113,7 @@ describe("login session oluşturma", () => {
 
       generate: vi.fn(async () => ({
         token: "plain-refresh-token",
+
         tokenHash: "hashed-refresh-token",
       })),
 
@@ -119,11 +122,31 @@ describe("login session oluşturma", () => {
       verify: vi.fn(async () => true),
     };
 
+    const accessTokenInputs: CreateAccessTokenInput[] = [];
+
+    const accessTokenProvider: AccessTokenProvider = {
+      create: vi.fn(async (input) => {
+        accessTokenInputs.push(input);
+
+        return "plain-access-token";
+      }),
+
+      verify: vi.fn(async () => ({
+        valid: false,
+        reason: "invalid",
+      })),
+    };
+
     const client = new MRTIdentityClient({
       adapter,
       passwordHasher,
       tokenProvider,
+      accessTokenProvider,
+
+      accessTokenDurationMs: 15 * 60 * 1000,
+
       sessionDurationMs: 60_000,
+
       idGenerator: () => "session-1",
     });
 
@@ -136,6 +159,7 @@ describe("login session oluşturma", () => {
 
       context: {
         ipAddress: "127.0.0.1",
+
         userAgent: "Vitest",
       },
     });
@@ -150,6 +174,42 @@ describe("login session oluşturma", () => {
 
     expect("refreshTokenHash" in (result.session ?? {})).toBe(false);
 
-    expect(storedSession?.refreshTokenHash).toBe("hashed-refresh-token");
+    expect(storedSession).not.toBeNull();
+
+    if (!storedSession) {
+      throw new Error("Session oluşturulmalıydı.");
+    }
+
+    expect(storedSession.refreshTokenHash).toBe("hashed-refresh-token");
+
+    expect(result.accessToken).toBe("plain-access-token");
+
+    expect(result.accessTokenExpiresAt).toEqual(expect.any(Date));
+
+    expect(accessTokenInputs).toHaveLength(1);
+
+    const accessTokenInput = accessTokenInputs[0];
+
+    expect(accessTokenInput).toBeDefined();
+
+    if (!accessTokenInput) {
+      throw new Error("Access token girdisi oluşturulmalıydı.");
+    }
+
+    expect(accessTokenInput).toEqual(
+      expect.objectContaining({
+        userId: "user-1",
+        sessionId: "session-1",
+
+        issuedAt: expect.any(Date),
+
+        expiresAt: expect.any(Date),
+      }),
+    );
+
+    expect(
+      accessTokenInput.expiresAt.getTime() -
+        accessTokenInput.issuedAt.getTime(),
+    ).toBe(15 * 60 * 1000);
   });
 });

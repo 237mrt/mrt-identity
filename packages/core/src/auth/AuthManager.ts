@@ -107,6 +107,11 @@ interface LoginAttemptKey {
   scope: IdentityLoginAttemptScope;
 }
 
+interface IssuedAccessToken {
+  accessToken: string;
+  accessTokenExpiresAt: Date;
+}
+
 function normalizeLoginIdentifier(identifier: string): string {
   const normalizedIdentifier = identifier.trim();
 
@@ -156,6 +161,36 @@ export class AuthManager {
 
   public constructor(client: MRTIdentityClient) {
     this.client = client;
+  }
+
+  private async issueAccessToken(
+    userId: string,
+    sessionId: string,
+    issuedAt: Date,
+  ): Promise<IssuedAccessToken | null> {
+    const accessTokenProvider = this.client.accessTokenProvider;
+
+    if (!accessTokenProvider) {
+      return null;
+    }
+
+    const accessTokenExpiresAt = new Date(
+      issuedAt.getTime() + this.client.accessTokenDurationMs,
+    );
+
+    const accessToken = await accessTokenProvider.create({
+      userId,
+      sessionId,
+
+      issuedAt: new Date(issuedAt.getTime()),
+
+      expiresAt: new Date(accessTokenExpiresAt.getTime()),
+    });
+
+    return {
+      accessToken,
+      accessTokenExpiresAt,
+    };
   }
 
   private async emitLoginFailed(
@@ -479,8 +514,16 @@ export class AuthManager {
 
     const now = new Date();
 
+    const sessionId = this.client.generateId();
+
+    const issuedAccessToken = await this.issueAccessToken(
+      resolvedUser.id,
+      sessionId,
+      now,
+    );
+
     const session = await sessionAdapter.create({
-      id: this.client.generateId(),
+      id: sessionId,
       userId: resolvedUser.id,
 
       refreshTokenHash: generatedToken.tokenHash,
@@ -518,7 +561,10 @@ export class AuthManager {
       user: publicUser,
       passwordRehashed,
       session: publicSession,
+
       refreshToken: generatedToken.token,
+
+      ...(issuedAccessToken ? issuedAccessToken : {}),
     };
   }
 
@@ -638,6 +684,12 @@ export class AuthManager {
 
     const generatedToken = await tokenProvider.generate();
 
+    const issuedAccessToken = await this.issueAccessToken(
+      user.id,
+      session.id,
+      now,
+    );
+
     const updatedSession = await sessionAdapter.update(session.id, {
       refreshTokenHash: generatedToken.tokenHash,
 
@@ -675,7 +727,10 @@ export class AuthManager {
     return {
       user: publicUser,
       session: publicSession,
+
       refreshToken: generatedToken.token,
+
+      ...(issuedAccessToken ? issuedAccessToken : {}),
     };
   }
 

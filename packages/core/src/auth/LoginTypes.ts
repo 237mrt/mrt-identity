@@ -26,13 +26,27 @@ export interface LoginResult {
   passwordRehashed: boolean;
 
   /**
-   * Session sistemi yapılandırılmışsa oluşturulur.
+   * Session sistemi yapılandırılmışsa
+   * oluşturulur.
    */
   session?: PublicIdentitySession;
 
   /**
-   * Yalnızca oluşturulduğu anda kullanıcıya döndürülür.
+   * Yalnızca oluşturulduğu anda
+   * kullanıcıya döndürülür.
    * Adaptörde düz metin olarak saklanmaz.
    */
   refreshToken?: string;
+
+  /**
+   * Access-token provider
+   * yapılandırılmışsa oluşturulur.
+   */
+  accessToken?: string;
+
+  /**
+   * Access tokenın geçerliliğinin
+   * sona ereceği zaman.
+   */
+  accessTokenExpiresAt?: Date;
 }
