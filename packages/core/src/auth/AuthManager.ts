@@ -575,25 +575,63 @@ export class AuthManager {
     const now = new Date();
 
     if (session.expiresAt.getTime() <= now.getTime()) {
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "expired",
+          occurredAt: now,
+        });
+      }
+
       throw new MRTIdentityError("SESSION_EXPIRED");
     }
 
     const user = await adapter.users.findById(session.userId);
 
     if (!user) {
-      await sessionAdapter.revoke(session.id, now);
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "user-not-found",
+          occurredAt: now,
+        });
+      }
 
       throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
     }
 
     if (user.status === "locked") {
-      await sessionAdapter.revoke(session.id, now);
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "account-state",
+          occurredAt: now,
+        });
+      }
 
       throw new MRTIdentityError("USER_ACCOUNT_LOCKED");
     }
 
     if (user.status === "disabled") {
-      await sessionAdapter.revoke(session.id, now);
+      const revoked = await sessionAdapter.revoke(session.id, now);
+
+      if (revoked) {
+        await this.client.emitEvent("sessionRevoked", {
+          sessionId: session.id,
+          userId: session.userId,
+          reason: "account-state",
+          occurredAt: now,
+        });
+      }
 
       throw new MRTIdentityError("USER_ACCOUNT_DISABLED");
     }
@@ -621,11 +659,22 @@ export class AuthManager {
       throw new MRTIdentityError("INVALID_REFRESH_TOKEN");
     }
 
+    const publicUser = toPublicIdentityUser(user);
+
+    const publicSession = toPublicIdentitySession(updatedSession);
+
+    await this.client.emitEvent("sessionRefreshed", {
+      user: publicUser,
+      session: publicSession,
+
+      context: input.context ?? null,
+
+      occurredAt: new Date(),
+    });
+
     return {
-      user: toPublicIdentityUser(user),
-
-      session: toPublicIdentitySession(updatedSession),
-
+      user: publicUser,
+      session: publicSession,
       refreshToken: generatedToken.token,
     };
   }
@@ -688,7 +737,18 @@ export class AuthManager {
       };
     }
 
-    const revoked = await sessionAdapter.revoke(session.id, new Date());
+    const revokedAt = new Date();
+
+    const revoked = await sessionAdapter.revoke(session.id, revokedAt);
+
+    if (revoked) {
+      await this.client.emitEvent("sessionRevoked", {
+        sessionId: session.id,
+        userId: session.userId,
+        reason: "logout",
+        occurredAt: revokedAt,
+      });
+    }
 
     return {
       revoked,
@@ -720,10 +780,19 @@ export class AuthManager {
       throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
     }
 
+    const occurredAt = new Date();
+
     const revokedCount = await sessionAdapter.revokeAllByUserId(
       user.id,
-      new Date(),
+      occurredAt,
     );
+
+    await this.client.emitEvent("sessionsRevoked", {
+      userId: user.id,
+      revokedCount,
+      reason: "logout-all",
+      occurredAt,
+    });
 
     return {
       revokedCount,
