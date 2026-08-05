@@ -1,28 +1,74 @@
+import { randomUUID } from "node:crypto";
+
 import type { IdentityAdapter } from "../adapters/IdentityAdapter.js";
+
+import { AuthManager } from "../auth/AuthManager.js";
+
+import { MRTIdentityError } from "../errors/MRTIdentityError.js";
+
+import type { PasswordHasher } from "../password/PasswordHasher.js";
+
+import {
+  BasicPasswordPolicy,
+  type PasswordPolicy,
+} from "../password/PasswordPolicy.js";
 
 import { MRT_IDENTITY_VERSION } from "../version.js";
 
 export interface MRTIdentityClientOptions {
   applicationName?: string;
   adapter?: IdentityAdapter;
+  passwordHasher?: PasswordHasher;
+  passwordPolicy?: PasswordPolicy;
+  idGenerator?: () => string;
 }
 
 export class MRTIdentityClient {
   public readonly applicationName: string;
   public readonly version = MRT_IDENTITY_VERSION;
-  public readonly adapter: IdentityAdapter | null;
 
+  public readonly adapter: IdentityAdapter | null;
+  public readonly passwordHasher: PasswordHasher | null;
+  public readonly passwordPolicy: PasswordPolicy;
+
+  public readonly auth: AuthManager;
+
+  private readonly idGenerator: () => string;
   private ready = false;
 
   public constructor(options: MRTIdentityClientOptions = {}) {
     this.applicationName =
-      options.applicationName ?? "MRT Identity Application";
+      options.applicationName ?? "mrt-identity application";
 
     this.adapter = options.adapter ?? null;
+
+    this.passwordHasher = options.passwordHasher ?? null;
+
+    this.passwordPolicy = options.passwordPolicy ?? new BasicPasswordPolicy();
+
+    this.idGenerator = options.idGenerator ?? randomUUID;
+
+    this.auth = new AuthManager(this);
   }
 
   public get isReady(): boolean {
     return this.ready;
+  }
+
+  public assertReady(): void {
+    if (!this.ready) {
+      throw new MRTIdentityError("CLIENT_NOT_READY");
+    }
+  }
+
+  public generateId(): string {
+    const id = this.idGenerator().trim();
+
+    if (!id) {
+      throw new MRTIdentityError("INVALID_GENERATED_ID");
+    }
+
+    return id;
   }
 
   public async start(): Promise<void> {
@@ -31,7 +77,11 @@ export class MRTIdentityClient {
     }
 
     if (!this.adapter) {
-      throw new Error("ADAPTER_NOT_CONFIGURED");
+      throw new MRTIdentityError("ADAPTER_NOT_CONFIGURED");
+    }
+
+    if (!this.passwordHasher) {
+      throw new MRTIdentityError("PASSWORD_HASHER_NOT_CONFIGURED");
     }
 
     await this.adapter.initialize?.();
