@@ -1,0 +1,27 @@
+{
+  "name": "@mrt-identity/example-express-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "mrt-identity için çalışan Express API örneği.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@mrt-identity/adapter-memory": "workspace:*",
+    "@mrt-identity/core": "workspace:*",
+    "@mrt-identity/password-argon2": "workspace:*",
+    "@mrt-identity/token-opaque": "workspace:*",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "tsx": "^4.23.5",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
