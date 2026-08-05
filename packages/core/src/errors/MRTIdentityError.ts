@@ -7,7 +7,10 @@ export type MRTIdentityErrorCode =
   | "WEAK_PASSWORD"
   | "USER_EMAIL_ALREADY_EXISTS"
   | "USER_USERNAME_ALREADY_EXISTS"
-  | "INVALID_GENERATED_ID";
+  | "INVALID_GENERATED_ID"
+  | "INVALID_CREDENTIALS"
+  | "USER_ACCOUNT_LOCKED"
+  | "USER_ACCOUNT_DISABLED";
 
 export class MRTIdentityError extends Error {
   public readonly code: MRTIdentityErrorCode;
