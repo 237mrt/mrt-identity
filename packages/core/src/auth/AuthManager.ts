@@ -10,6 +10,10 @@ import type { LoginInput, LoginResult } from "./LoginTypes.js";
 
 import type { RegisterInput, RegisterResult } from "./RegisterTypes.js";
 
+import type { IdentitySession } from "../types/IdentitySession.js";
+
+import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -40,6 +44,24 @@ function toPublicIdentityUser(user: IdentityUser): PublicIdentityUser {
 
     createdAt: new Date(publicUser.createdAt),
     updatedAt: new Date(publicUser.updatedAt),
+  };
+}
+
+function toPublicIdentitySession(
+  session: IdentitySession,
+): PublicIdentitySession {
+  const { refreshTokenHash: _refreshTokenHash, ...publicSession } = session;
+
+  return {
+    ...publicSession,
+    expiresAt: new Date(publicSession.expiresAt),
+    lastUsedAt: new Date(publicSession.lastUsedAt),
+    createdAt: new Date(publicSession.createdAt),
+    updatedAt: new Date(publicSession.updatedAt),
+
+    revokedAt: publicSession.revokedAt
+      ? new Date(publicSession.revokedAt)
+      : null,
   };
 }
 
@@ -201,9 +223,45 @@ export class AuthManager {
       }
     }
 
+    const publicUser = toPublicIdentityUser(resolvedUser);
+
+    const sessionAdapter = adapter.sessions;
+
+    const tokenProvider = this.client.tokenProvider;
+
+    if (!sessionAdapter || !tokenProvider) {
+      return {
+        user: publicUser,
+        passwordRehashed,
+      };
+    }
+
+    const generatedToken = await tokenProvider.generate();
+
+    const now = new Date();
+
+    const session = await sessionAdapter.create({
+      id: this.client.generateId(),
+      userId: resolvedUser.id,
+
+      refreshTokenHash: generatedToken.tokenHash,
+
+      ipAddress: input.context?.ipAddress ?? null,
+
+      userAgent: input.context?.userAgent ?? null,
+
+      expiresAt: new Date(now.getTime() + this.client.sessionDurationMs),
+
+      lastUsedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     return {
-      user: toPublicIdentityUser(resolvedUser),
+      user: publicUser,
       passwordRehashed,
+      session: toPublicIdentitySession(session),
+      refreshToken: generatedToken.token,
     };
   }
 }

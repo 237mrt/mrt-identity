@@ -1,4 +1,8 @@
+import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
+
 import type { PublicIdentityUser } from "../types/PublicIdentityUser.js";
+
+import type { SessionContext } from "./SessionAuthTypes.js";
 
 export interface LoginInput {
   /**
@@ -10,14 +14,25 @@ export interface LoginInput {
    * Kullanıcının düz metin parolası.
    */
   password: string;
+
+  /**
+   * Giriş isteğine ait cihaz ve ağ bilgileri.
+   */
+  context?: SessionContext;
 }
 
 export interface LoginResult {
   user: PublicIdentityUser;
+  passwordRehashed: boolean;
 
   /**
-   * Eski parola hash ayarları giriş sırasında
-   * güncellendiyse true olur.
+   * Session sistemi yapılandırılmışsa oluşturulur.
    */
-  passwordRehashed: boolean;
+  session?: PublicIdentitySession;
+
+  /**
+   * Yalnızca oluşturulduğu anda kullanıcıya döndürülür.
+   * Adaptörde düz metin olarak saklanmaz.
+   */
+  refreshToken?: string;
 }

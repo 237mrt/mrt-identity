@@ -111,4 +111,13 @@ describe("MRTIdentityClient", () => {
 
     expect(adapter.disconnect).toHaveBeenCalledOnce();
   });
+
+  it("geçersiz session süresini reddetmelidir", () => {
+    expect(
+      () =>
+        new MRTIdentityClient({
+          sessionDurationMs: 0,
+        }),
+    ).toThrow("sessionDurationMs pozitif bir tam sayı olmalıdır.");
+  });
 });

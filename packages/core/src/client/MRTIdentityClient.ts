@@ -8,6 +8,8 @@ import { MRTIdentityError } from "../errors/MRTIdentityError.js";
 
 import type { PasswordHasher } from "../password/PasswordHasher.js";
 
+import type { TokenProvider } from "../tokens/TokenProvider.js";
+
 import {
   BasicPasswordPolicy,
   type PasswordPolicy,
@@ -20,6 +22,8 @@ export interface MRTIdentityClientOptions {
   adapter?: IdentityAdapter;
   passwordHasher?: PasswordHasher;
   passwordPolicy?: PasswordPolicy;
+  tokenProvider?: TokenProvider;
+  sessionDurationMs?: number;
   idGenerator?: () => string;
 }
 
@@ -30,7 +34,8 @@ export class MRTIdentityClient {
   public readonly adapter: IdentityAdapter | null;
   public readonly passwordHasher: PasswordHasher | null;
   public readonly passwordPolicy: PasswordPolicy;
-
+  public readonly tokenProvider: TokenProvider | null;
+  public readonly sessionDurationMs: number;
   public readonly auth: AuthManager;
 
   private readonly idGenerator: () => string;
@@ -43,6 +48,18 @@ export class MRTIdentityClient {
     this.adapter = options.adapter ?? null;
 
     this.passwordHasher = options.passwordHasher ?? null;
+
+    this.tokenProvider = options.tokenProvider ?? null;
+
+    this.sessionDurationMs =
+      options.sessionDurationMs ?? 1000 * 60 * 60 * 24 * 30;
+
+    if (
+      !Number.isInteger(this.sessionDurationMs) ||
+      this.sessionDurationMs <= 0
+    ) {
+      throw new TypeError("sessionDurationMs pozitif bir tam sayı olmalıdır.");
+    }
 
     this.passwordPolicy = options.passwordPolicy ?? new BasicPasswordPolicy();
 
