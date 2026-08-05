@@ -2,10 +2,13 @@ import type {
   CreateIdentitySessionInput,
   CreateIdentityUserInput,
   IdentityAdapter,
+  IdentityLoginAttempt,
+  IdentityLoginAttemptAdapter,
   IdentitySession,
   IdentitySessionAdapter,
   IdentityUser,
   IdentityUserAdapter,
+  RecordIdentityLoginFailureInput,
   UpdateIdentitySessionInput,
   UpdateIdentityUserInput,
 } from "@mrt-identity/core";
@@ -44,12 +47,32 @@ function cloneSession(session: IdentitySession): IdentitySession {
   };
 }
 
+function cloneLoginAttempt(
+  attempt: IdentityLoginAttempt,
+): IdentityLoginAttempt {
+  return {
+    ...attempt,
+
+    firstFailedAt: new Date(attempt.firstFailedAt),
+
+    lastFailedAt: new Date(attempt.lastFailedAt),
+
+    lockedUntil: attempt.lockedUntil ? new Date(attempt.lockedUntil) : null,
+
+    createdAt: new Date(attempt.createdAt),
+
+    updatedAt: new Date(attempt.updatedAt),
+  };
+}
+
 export class MemoryAdapter implements IdentityAdapter {
   public readonly name = "memory";
 
   private readonly userStore = new Map<string, IdentityUser>();
 
   private readonly sessionStore = new Map<string, IdentitySession>();
+
+  private readonly loginAttemptStore = new Map<string, IdentityLoginAttempt>();
 
   public readonly users: IdentityUserAdapter = {
     create: async (data: CreateIdentityUserInput): Promise<IdentityUser> => {
@@ -347,6 +370,121 @@ export class MemoryAdapter implements IdentityAdapter {
     },
   };
 
+  public readonly loginAttempts: IdentityLoginAttemptAdapter = {
+    findByKey: async (key: string): Promise<IdentityLoginAttempt | null> => {
+      const attempt = this.loginAttemptStore.get(key);
+
+      return attempt ? cloneLoginAttempt(attempt) : null;
+    },
+
+    recordFailure: async (
+      input: RecordIdentityLoginFailureInput,
+    ): Promise<IdentityLoginAttempt> => {
+      const occurredAt = new Date(input.occurredAt);
+
+      const current = this.loginAttemptStore.get(input.key);
+
+      /*
+       * Aktif kilit devam ederken recordFailure
+       * yanlışlıkla tekrar çağrılırsa kilit süresini
+       * sürekli uzatmıyoruz.
+       */
+      if (
+        current?.lockedUntil &&
+        current.lockedUntil.getTime() > occurredAt.getTime()
+      ) {
+        return cloneLoginAttempt(current);
+      }
+
+      const attemptWindowExpired = current
+        ? occurredAt.getTime() - current.firstFailedAt.getTime() >=
+          input.attemptWindowMs
+        : false;
+
+      const previousLockExpired = current?.lockedUntil
+        ? current.lockedUntil.getTime() <= occurredAt.getTime()
+        : false;
+
+      /*
+       * İlk denemede, takip penceresi sona erdiğinde
+       * veya eski kilit açıldığında sayaç sıfırlanır.
+       */
+      if (!current || attemptWindowExpired || previousLockExpired) {
+        const failedAttempts = 1;
+
+        const lockedUntil =
+          failedAttempts >= input.maxAttempts
+            ? new Date(occurredAt.getTime() + input.lockDurationMs)
+            : null;
+
+        const attempt: IdentityLoginAttempt = {
+          key: input.key,
+          scope: input.scope,
+          failedAttempts,
+
+          firstFailedAt: occurredAt,
+          lastFailedAt: occurredAt,
+
+          lockedUntil,
+
+          createdAt: occurredAt,
+          updatedAt: occurredAt,
+        };
+
+        this.loginAttemptStore.set(attempt.key, attempt);
+
+        return cloneLoginAttempt(attempt);
+      }
+
+      const failedAttempts = current.failedAttempts + 1;
+
+      const lockedUntil =
+        failedAttempts >= input.maxAttempts
+          ? new Date(occurredAt.getTime() + input.lockDurationMs)
+          : null;
+
+      const updatedAttempt: IdentityLoginAttempt = {
+        ...current,
+
+        scope: input.scope,
+        failedAttempts,
+        lastFailedAt: occurredAt,
+        lockedUntil,
+        updatedAt: occurredAt,
+      };
+
+      this.loginAttemptStore.set(updatedAttempt.key, updatedAttempt);
+
+      return cloneLoginAttempt(updatedAttempt);
+    },
+
+    clear: async (key: string): Promise<boolean> => {
+      return this.loginAttemptStore.delete(key);
+    },
+
+    deleteStale: async (before: Date): Promise<number> => {
+      let deletedCount = 0;
+
+      for (const [key, attempt] of this.loginAttemptStore.entries()) {
+        const updatedBeforeCutoff =
+          attempt.updatedAt.getTime() < before.getTime();
+
+        const lockFinishedBeforeCutoff =
+          !attempt.lockedUntil ||
+          attempt.lockedUntil.getTime() < before.getTime();
+
+        if (!updatedBeforeCutoff || !lockFinishedBeforeCutoff) {
+          continue;
+        }
+
+        this.loginAttemptStore.delete(key);
+        deletedCount += 1;
+      }
+
+      return deletedCount;
+    },
+  };
+
   public async initialize(): Promise<void> {
     // Bellek adaptörü harici bağlantı gerektirmez.
   }
@@ -354,5 +492,6 @@ export class MemoryAdapter implements IdentityAdapter {
   public async disconnect(): Promise<void> {
     this.userStore.clear();
     this.sessionStore.clear();
+    this.loginAttemptStore.clear();
   }
 }
