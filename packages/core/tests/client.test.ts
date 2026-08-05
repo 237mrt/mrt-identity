@@ -4,6 +4,7 @@ import {
   MRTIdentityClient,
   MRT_IDENTITY_VERSION,
   type IdentityAdapter,
+  type PasswordHasher,
 } from "../src/index.ts";
 
 function createTestAdapter(): IdentityAdapter {
@@ -24,11 +25,27 @@ function createTestAdapter(): IdentityAdapter {
   };
 }
 
+function createTestPasswordHasher(): PasswordHasher {
+  return {
+    name: "test",
+
+    hash: vi.fn(async (password: string): Promise<string> => {
+      return `hashed:${password}`;
+    }),
+
+    verify: vi.fn(
+      async (password: string, passwordHash: string): Promise<boolean> => {
+        return passwordHash === `hashed:${password}`;
+      },
+    ),
+  };
+}
+
 describe("MRTIdentityClient", () => {
   it("varsayılan uygulama adıyla oluşturulabilmelidir", () => {
     const client = new MRTIdentityClient();
 
-    expect(client.applicationName).toBe("MRT Identity Application");
+    expect(client.applicationName).toBe("mrt-identity application");
   });
 
   it("özel uygulama adını kabul etmelidir", () => {
@@ -45,23 +62,38 @@ describe("MRTIdentityClient", () => {
     expect(client.version).toBe(MRT_IDENTITY_VERSION);
   });
 
-  it("adaptör ile başlatılabilmelidir", async () => {
+  it("gerekli sağlayıcılarla başlatılabilmelidir", async () => {
     const adapter = createTestAdapter();
+    const passwordHasher = createTestPasswordHasher();
 
     const client = new MRTIdentityClient({
       adapter,
+      passwordHasher,
     });
 
     await client.start();
 
     expect(client.isReady).toBe(true);
+
     expect(adapter.initialize).toHaveBeenCalledOnce();
   });
 
   it("adaptör olmadan başlatılamamalıdır", async () => {
-    const client = new MRTIdentityClient();
+    const client = new MRTIdentityClient({
+      passwordHasher: createTestPasswordHasher(),
+    });
 
     await expect(client.start()).rejects.toThrow("ADAPTER_NOT_CONFIGURED");
+  });
+
+  it("parola sağlayıcısı olmadan başlatılamamalıdır", async () => {
+    const client = new MRTIdentityClient({
+      adapter: createTestAdapter(),
+    });
+
+    await expect(client.start()).rejects.toThrow(
+      "PASSWORD_HASHER_NOT_CONFIGURED",
+    );
   });
 
   it("durdurulduğunda adaptör bağlantısını kapatmalıdır", async () => {
@@ -69,12 +101,14 @@ describe("MRTIdentityClient", () => {
 
     const client = new MRTIdentityClient({
       adapter,
+      passwordHasher: createTestPasswordHasher(),
     });
 
     await client.start();
     await client.stop();
 
     expect(client.isReady).toBe(false);
+
     expect(adapter.disconnect).toHaveBeenCalledOnce();
   });
 });

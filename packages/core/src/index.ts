@@ -4,9 +4,28 @@ export { MRTIdentityClient } from "./client/MRTIdentityClient.js";
 
 export type { MRTIdentityClientOptions } from "./client/MRTIdentityClient.js";
 
+export { AuthManager } from "./auth/AuthManager.js";
+
+export type { RegisterInput, RegisterResult } from "./auth/RegisterTypes.js";
+
+export { MRTIdentityError } from "./errors/MRTIdentityError.js";
+
+export type { MRTIdentityErrorCode } from "./errors/MRTIdentityError.js";
+
 export type { IdentityAdapter } from "./adapters/IdentityAdapter.js";
 
 export type { IdentityUserAdapter } from "./adapters/IdentityUserAdapter.js";
+
+export type { PasswordHasher } from "./password/PasswordHasher.js";
+
+export { BasicPasswordPolicy } from "./password/PasswordPolicy.js";
+
+export type {
+  BasicPasswordPolicyOptions,
+  PasswordPolicy,
+  PasswordValidationIssue,
+  PasswordValidationResult,
+} from "./password/PasswordPolicy.js";
 
 export type {
   CreateIdentityUserInput,
@@ -14,3 +33,5 @@ export type {
   IdentityUserStatus,
   UpdateIdentityUserInput,
 } from "./types/IdentityUser.js";
+
+export type { PublicIdentityUser } from "./types/PublicIdentityUser.js";
