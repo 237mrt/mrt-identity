@@ -41,6 +41,17 @@ export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 export type { IdentityLoginAttemptAdapter } from "./adapters/IdentityLoginAttemptAdapter.js";
 
 export type {
+  AccessTokenPayload,
+  CreateAccessTokenInput,
+  VerifyAccessTokenInput,
+  AccessTokenVerificationFailureReason,
+  ValidAccessTokenVerification,
+  InvalidAccessTokenVerification,
+  AccessTokenVerificationResult,
+  AccessTokenProvider,
+} from "./token/AccessTokenProvider.js";
+
+export type {
   LoginFailedEvent,
   LoginFailedReason,
   LoginSucceededEvent,
