@@ -12,6 +12,10 @@ import type { TokenProvider } from "../tokens/TokenProvider.js";
 
 import { resolveLoginProtectionOptions } from "../security/LoginProtectionOptions.js";
 
+import type { AccessTokenProvider } from "../token/AccessTokenProvider.js";
+
+import { resolveAccessTokenDurationMs } from "../token/AccessTokenConfiguration.js";
+
 import type {
   MRTIdentityEventListener,
   MRTIdentityEventMap,
@@ -40,6 +44,21 @@ export interface MRTIdentityClientOptions {
   tokenProvider?: TokenProvider;
   loginProtection?: LoginProtectionOptions;
   sessionDurationMs?: number;
+  /**
+   * Kısa ömürlü access tokenları üretip
+   * doğrulayacak sağlayıcı.
+   *
+   * Tanımlanmazsa access token sistemi
+   * devre dışı kalır.
+   */
+  accessTokenProvider?: AccessTokenProvider;
+
+  /**
+   * Access token geçerlilik süresi.
+   *
+   * Varsayılan: 15 dakika.
+   */
+  accessTokenDurationMs?: number;
   idGenerator?: () => string;
 }
 
@@ -54,6 +73,9 @@ export class MRTIdentityClient {
   public readonly tokenProvider: TokenProvider | null;
   public readonly sessionDurationMs: number;
   public readonly auth: AuthManager;
+  public readonly accessTokenProvider: AccessTokenProvider | undefined;
+
+  public readonly accessTokenDurationMs: number;
 
   private readonly idGenerator: () => string;
   private ready = false;
@@ -64,6 +86,12 @@ export class MRTIdentityClient {
       options.applicationName ?? "mrt-identity application";
 
     this.adapter = options.adapter ?? null;
+
+    this.accessTokenProvider = options.accessTokenProvider;
+
+    this.accessTokenDurationMs = resolveAccessTokenDurationMs(
+      options.accessTokenDurationMs,
+    );
 
     this.passwordHasher = options.passwordHasher ?? null;
 

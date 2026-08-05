@@ -40,6 +40,8 @@ export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
 
 export type { IdentityLoginAttemptAdapter } from "./adapters/IdentityLoginAttemptAdapter.js";
 
+export { DEFAULT_ACCESS_TOKEN_DURATION_MS } from "./token/AccessTokenConfiguration.js";
+
 export type {
   AccessTokenPayload,
   CreateAccessTokenInput,
