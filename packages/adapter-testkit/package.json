@@ -1,7 +1,7 @@
 {
-  "name": "@mrt-identity/adapter-memory",
+  "name": "@mrt-identity/adapter-testkit",
   "version": "0.1.0",
-  "description": "MRT Identity için bellek tabanlı geliştirme ve test adaptörü.",
+  "description": "mrt-identity adapterları için ortak sözleşme testleri.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,21 +17,23 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@mrt-identity/core": "workspace:*"
   },
+  "peerDependencies": {
+    "vitest": ">=4.0.0"
+  },
   "devDependencies": {
-    "@mrt-identity/adapter-testkit": "workspace:*",
-    "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
   "keywords": [
     "authentication",
     "adapter",
-    "memory",
-    "testing"
+    "testing",
+    "contract-tests",
+    "vitest"
   ],
   "author": "237mrt",
   "license": "MIT"
