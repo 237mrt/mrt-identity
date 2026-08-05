@@ -34,6 +34,18 @@ export type {
   UpdateIdentityUserInput,
 } from "./types/IdentityUser.js";
 
+export type { IdentitySessionAdapter } from "./adapters/IdentitySessionAdapter.js";
+
+export type { GeneratedToken, TokenProvider } from "./tokens/TokenProvider.js";
+
+export type {
+  CreateIdentitySessionInput,
+  IdentitySession,
+  UpdateIdentitySessionInput,
+} from "./types/IdentitySession.js";
+
+export type { PublicIdentitySession } from "./types/PublicIdentitySession.js";
+
 export type { LoginInput, LoginResult } from "./auth/LoginTypes.js";
 
 export type { PublicIdentityUser } from "./types/PublicIdentityUser.js";

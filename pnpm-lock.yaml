@@ -38,6 +38,12 @@ importers:
         specifier: ^0.45.1
         version: 0.45.1
 
+  packages/token-opaque:
+    dependencies:
+      '@mrt-identity/core':
+        specifier: workspace:*
+        version: link:../core
+
 packages:
 
   '@epic-web/invariant@1.0.0':
