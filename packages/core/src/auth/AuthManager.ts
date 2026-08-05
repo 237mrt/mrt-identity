@@ -14,7 +14,14 @@ import type { IdentitySession } from "../types/IdentitySession.js";
 
 import type { PublicIdentitySession } from "../types/PublicIdentitySession.js";
 
-import type { RefreshInput, RefreshResult } from "./SessionAuthTypes.js";
+import type {
+  LogoutAllInput,
+  LogoutAllResult,
+  LogoutInput,
+  LogoutResult,
+  RefreshInput,
+  RefreshResult,
+} from "./SessionAuthTypes.js";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -372,6 +379,106 @@ export class AuthManager {
       session: toPublicIdentitySession(updatedSession),
 
       refreshToken: generatedToken.token,
+    };
+  }
+
+  public async logout(input: LogoutInput): Promise<LogoutResult> {
+    this.client.assertReady();
+
+    const adapter = this.client.adapter;
+
+    if (!adapter) {
+      throw new MRTIdentityError("ADAPTER_NOT_CONFIGURED");
+    }
+
+    const sessionAdapter = adapter.sessions;
+
+    if (!sessionAdapter) {
+      throw new MRTIdentityError("SESSION_SUPPORT_NOT_CONFIGURED");
+    }
+
+    const tokenProvider = this.client.tokenProvider;
+
+    if (!tokenProvider) {
+      throw new MRTIdentityError("TOKEN_PROVIDER_NOT_CONFIGURED");
+    }
+
+    if (
+      typeof input.refreshToken !== "string" ||
+      input.refreshToken.length === 0
+    ) {
+      return {
+        revoked: false,
+      };
+    }
+
+    const refreshTokenHash = await tokenProvider.hash(input.refreshToken);
+
+    const session =
+      await sessionAdapter.findByRefreshTokenHash(refreshTokenHash);
+
+    if (!session) {
+      return {
+        revoked: false,
+      };
+    }
+
+    const tokenVerified = await tokenProvider.verify(
+      input.refreshToken,
+      session.refreshTokenHash,
+    );
+
+    if (!tokenVerified) {
+      return {
+        revoked: false,
+      };
+    }
+
+    if (session.revokedAt) {
+      return {
+        revoked: false,
+      };
+    }
+
+    const revoked = await sessionAdapter.revoke(session.id, new Date());
+
+    return {
+      revoked,
+    };
+  }
+
+  public async logoutAll(input: LogoutAllInput): Promise<LogoutAllResult> {
+    this.client.assertReady();
+
+    const adapter = this.client.adapter;
+
+    if (!adapter) {
+      throw new MRTIdentityError("ADAPTER_NOT_CONFIGURED");
+    }
+
+    const sessionAdapter = adapter.sessions;
+
+    if (!sessionAdapter) {
+      throw new MRTIdentityError("SESSION_SUPPORT_NOT_CONFIGURED");
+    }
+
+    if (typeof input.userId !== "string" || input.userId.trim().length === 0) {
+      throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
+    }
+
+    const user = await adapter.users.findById(input.userId);
+
+    if (!user) {
+      throw new MRTIdentityError("SESSION_USER_NOT_FOUND");
+    }
+
+    const revokedCount = await sessionAdapter.revokeAllByUserId(
+      user.id,
+      new Date(),
+    );
+
+    return {
+      revokedCount,
     };
   }
 }
